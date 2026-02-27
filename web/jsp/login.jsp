@@ -11,7 +11,7 @@
         <div class="card">
             <h2>Ocean View Resort</h2>
 
-            <form action="../login" method="post">
+            <form action="${pageContext.request.contextPath}/login" method="post">
 
                 <div class="input-group">
                     <label>Username</label>

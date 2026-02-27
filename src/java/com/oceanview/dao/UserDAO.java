@@ -74,7 +74,7 @@ public class UserDAO {
 
         return null;
     }
-
+    
     public boolean isUsernameExists(String username) {
 
         try {
@@ -92,4 +92,30 @@ public class UserDAO {
 
         return false;
     }
+    public User findGuestByEmailOrContact(String value) {
+
+    try {
+        String sql = "SELECT * FROM users WHERE role='GUEST' AND (email=? OR contact=?)";
+        PreparedStatement ps = connection.prepareStatement(sql);
+        ps.setString(1, value);
+        ps.setString(2, value);
+
+        ResultSet rs = ps.executeQuery();
+
+        if (rs.next()) {
+            User user = new User();
+            user.setId(rs.getInt("id"));
+            user.setFullName(rs.getString("full_name"));
+            user.setEmail(rs.getString("email"));
+            user.setContact(rs.getString("contact"));
+            user.setAddress(rs.getString("address"));
+            return user;
+        }
+
+    } catch(Exception e) {
+        e.printStackTrace();
+    }
+
+    return null;
+}
 }
