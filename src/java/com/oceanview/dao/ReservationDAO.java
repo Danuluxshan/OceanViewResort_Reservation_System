@@ -40,29 +40,77 @@ public class ReservationDAO {
     }
 
     // 🔹 View All Reservations
-    public List<String[]> getAllReservations() {
+public List<String[]> getAllReservations() {
+
+    List<String[]> list = new ArrayList<>();
+
+    try {
+
+        String sql = """
+            SELECT r.reservation_number,
+                   u.full_name,
+                   rm.room_number,
+                   r.check_in,
+                   r.check_out,
+                   r.total_amount,
+                   r.status
+            FROM reservations r
+            JOIN users u ON r.guest_id = u.id
+            JOIN rooms rm ON r.room_id = rm.id
+        """;
+
+        PreparedStatement ps = connection.prepareStatement(sql);
+        ResultSet rs = ps.executeQuery();
+
+        while (rs.next()) {
+
+            String[] row = new String[7]; // 🔥 NOW 7
+
+            row[0] = rs.getString("reservation_number");
+            row[1] = rs.getString("full_name");
+            row[2] = rs.getString("room_number");
+            row[3] = rs.getString("check_in");
+            row[4] = rs.getString("check_out");
+            row[5] = String.valueOf(rs.getDouble("total_amount"));
+            row[6] = rs.getString("status");  // 🔥 IMPORTANT
+
+            list.add(row);
+        }
+
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+
+    return list;
+}
+
+    public List<String[]> searchByReservationNumber(String reservationNo) {
 
         List<String[]> list = new ArrayList<>();
 
         try {
             String sql = """
-                SELECT r.reservation_number,
-                       u.full_name,
-                       rm.room_number,
-                       r.check_in,
-                       r.check_out,
-                       r.total_amount
-                FROM reservations r
-                JOIN users u ON r.guest_id = u.id
-                JOIN rooms rm ON r.room_id = rm.id
-                """;
+            SELECT r.reservation_number,
+                   u.full_name,
+                   rm.room_number,
+                   r.check_in,
+                   r.check_out,
+                   r.total_amount,
+                   r.status
+            FROM reservations r
+            JOIN users u ON r.guest_id = u.id
+            JOIN rooms rm ON r.room_id = rm.id
+            WHERE r.reservation_number = ?
+        """;
 
             PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, reservationNo);
+
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
 
-                String[] row = new String[6];
+                String[] row = new String[7];
 
                 row[0] = rs.getString("reservation_number");
                 row[1] = rs.getString("full_name");
@@ -70,6 +118,7 @@ public class ReservationDAO {
                 row[3] = rs.getString("check_in");
                 row[4] = rs.getString("check_out");
                 row[5] = String.valueOf(rs.getDouble("total_amount"));
+                row[6] = rs.getString("status");
 
                 list.add(row);
             }
@@ -80,5 +129,36 @@ public class ReservationDAO {
 
         return list;
     }
-    
+
+    public boolean deleteReservation(String reservationNo) {
+
+        try {
+            String sql = "DELETE FROM reservations WHERE reservation_number=?";
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, reservationNo);
+
+            return ps.executeUpdate() > 0;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+    public boolean confirmReservation(String reservationNo) {
+
+        try {
+            String sql = "UPDATE reservations SET status='CONFIRMED' WHERE reservation_number=?";
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, reservationNo);
+
+            return ps.executeUpdate() > 0;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
 }

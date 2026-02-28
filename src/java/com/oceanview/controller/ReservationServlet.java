@@ -33,6 +33,44 @@ public class ReservationServlet extends HttpServlet {
         String checkIn = request.getParameter("checkIn");
         String checkOut = request.getParameter("checkOut");
         String searchValue = request.getParameter("searchValue");
+        String action = request.getParameter("action");
+        String reservationNo = request.getParameter("reservationNo");
+
+        if (reservationNo != null && !reservationNo.trim().isEmpty()) {
+
+            request.setAttribute("reservations",
+                    reservationDAO.searchByReservationNumber(reservationNo.trim()));
+
+        } else {
+
+            request.setAttribute("reservations",
+                    reservationDAO.getAllReservations());
+        }
+
+        if ("cancel".equals(action) && reservationNo != null) {
+            reservationDAO.deleteReservation(reservationNo);
+            response.sendRedirect(request.getContextPath() + "/manageReservation");
+            return;
+        }
+
+// Step 1: Show confirmation preview only
+        if ("confirm".equals(action) && reservationNo != null) {
+
+            request.setAttribute("confirmationDetails",
+                    reservationDAO.searchByReservationNumber(reservationNo));
+
+            request.setAttribute("contentPage",
+                    "confirmationScreen.jsp");
+
+            request.getRequestDispatcher("jsp/admin/layout.jsp")
+                    .forward(request, response);
+            return;
+        }
+        if ("cancel".equals(action) && reservationNo != null) {
+            reservationDAO.deleteReservation(reservationNo);
+            response.sendRedirect(request.getContextPath() + "/manageReservation");
+            return;
+        }
 
         // 🔹 Check available rooms
         if (checkIn != null && checkOut != null) {
@@ -44,7 +82,6 @@ public class ReservationServlet extends HttpServlet {
         }
 
         // 🔹 Existing guest search
-
         if (searchValue != null && !searchValue.trim().isEmpty()) {
             User foundGuest
                     = userDAO.findGuestByEmailOrContact(searchValue.trim());
@@ -60,7 +97,7 @@ public class ReservationServlet extends HttpServlet {
 
         request.getRequestDispatcher("jsp/admin/layout.jsp")
                 .forward(request, response);
-        
+
         System.out.println("Search Value: " + searchValue);
     }
 
@@ -68,6 +105,20 @@ public class ReservationServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request,
             HttpServletResponse response)
             throws ServletException, IOException {
+        // Step 2: Final confirmation
+        String finalConfirm = request.getParameter("finalConfirm");
+        String reservationNo = request.getParameter("reservationNo");
+
+        if ("true".equals(finalConfirm) && reservationNo != null) {
+
+            ReservationDAO reservationDAO = new ReservationDAO();
+            reservationDAO.confirmReservation(reservationNo);
+
+            response.sendRedirect(
+                    request.getContextPath() + "/manageReservation");
+
+            return;
+        }
 
         try {
 
