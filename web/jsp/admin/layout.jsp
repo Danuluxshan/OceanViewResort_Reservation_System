@@ -27,6 +27,7 @@
             <a href="${pageContext.request.contextPath}/manageGuests">Manage Guests</a>
             <a href="${pageContext.request.contextPath}/manageRooms">Manage Rooms</a>
             <a href="${pageContext.request.contextPath}/manageReservation">Manage Reservations</a>
+            <a href="${pageContext.request.contextPath}/manageReservation?action=manageBookings">Manage Bookings</a>
             <a href="#">Reports</a>
 
             <a href="${pageContext.request.contextPath}/logout" class="logout">
