@@ -3,159 +3,144 @@
 <h2>Manage Reservation</h2>
 
 <!-- =============================
-   CHECK AVAILABILITY SECTION
+   CHECK AVAILABILITY
 ============================== -->
 
 <div class="form-card">
-    <form method="get"
-          action="${pageContext.request.contextPath}/manageReservation">
+<form method="get"
+      action="${pageContext.request.contextPath}/manageReservation">
 
-        <label>Check In Date</label>
-        <input type="date" name="checkIn"
-               value="<%= request.getParameter("checkIn") != null ? request.getParameter("checkIn") : ""%>"
-               required>
+    <label>Check In Date</label>
+    <input type="date" name="checkIn"
+           value="<%= request.getParameter("checkIn") != null ? request.getParameter("checkIn") : "" %>"
+           required>
 
-        <label>Check Out Date</label>
-        <input type="date" name="checkOut"
-               value="<%= request.getParameter("checkOut") != null ? request.getParameter("checkOut") : ""%>"
-               required>
+    <label>Check Out Date</label>
+    <input type="date" name="checkOut"
+           value="<%= request.getParameter("checkOut") != null ? request.getParameter("checkOut") : "" %>"
+           required>
 
-        <button type="submit">Check Available Rooms</button>
-    </form>
+    <button type="submit">Check Available Rooms</button>
+</form>
 </div>
 
 
 <%
-    String checkIn = request.getParameter("checkIn");
-    String checkOut = request.getParameter("checkOut");
+String checkIn = request.getParameter("checkIn");
+String checkOut = request.getParameter("checkOut");
+
+java.util.List<com.oceanview.model.Room> availableRooms =
+    (java.util.List<com.oceanview.model.Room>)
+    request.getAttribute("availableRooms");
+
+com.oceanview.model.User foundGuest =
+    (com.oceanview.model.User)
+    request.getAttribute("foundGuest");
 %>
 
 <!-- =============================
    SELECTED DATE DISPLAY
 ============================== -->
 
-<% if (checkIn != null && checkOut != null) {%>
-
+<% if (checkIn != null && checkOut != null) { %>
 <div class="table-card">
     <h4>Selected Dates</h4>
-    <p>
-        Check In: <b><%= checkIn%></b><br>
-        Check Out: <b><%= checkOut%></b>
-    </p>
+    Check In: <b><%= checkIn %></b><br>
+    Check Out: <b><%= checkOut %></b>
+</div>
+<% } %>
+
+
+<!-- =============================
+   EXISTING GUEST SEARCH
+============================== -->
+
+<% if (availableRooms != null && !availableRooms.isEmpty()) { %>
+
+<div class="form-card">
+
+<form method="get"
+      action="${pageContext.request.contextPath}/manageReservation">
+
+    <input type="hidden" name="checkIn" value="<%= checkIn %>">
+    <input type="hidden" name="checkOut" value="<%= checkOut %>">
+
+    <input type="text" name="searchValue"
+           placeholder="Search Existing Guest (Email / Contact)">
+    <button type="submit">Search Guest</button>
+
+</form>
+
 </div>
 
 <% } %>
 
 
-<%
-    java.util.List<com.oceanview.model.Room> availableRooms
-            = (java.util.List<com.oceanview.model.Room>) request.getAttribute("availableRooms");
-
-    com.oceanview.model.User foundGuest
-            = (com.oceanview.model.User) request.getAttribute("foundGuest");
-%>
-
 <!-- =============================
-   RESERVATION FORM SECTION
+   RESERVATION POST FORM (ONLY ONE)
 ============================== -->
 
-<% if (availableRooms != null && !availableRooms.isEmpty()) {%>
+<% if (availableRooms != null && !availableRooms.isEmpty()) { %>
 
 <div class="form-card">
 
-    <form method="post"
-          action="${pageContext.request.contextPath}/manageReservation">
+<form method="post"
+      action="${pageContext.request.contextPath}/manageReservation">
 
-        <!-- Preserve Dates -->
-        <input type="hidden" name="checkIn" value="<%= checkIn%>">
-        <input type="hidden" name="checkOut" value="<%= checkOut%>">
+    <input type="hidden" name="checkIn" value="<%= checkIn %>">
+    <input type="hidden" name="checkOut" value="<%= checkOut %>">
 
-        <!-- ROOM SELECTION -->
-        <label>Select Room</label>
-        <select name="roomId" id="roomSelect" required>
-            <%
-                for (com.oceanview.model.Room room : availableRooms) {
-            %>
-            <option value="<%= room.getId()%>"
-                    data-price="<%= room.getPricePerNight()%>">
-                Room <%= room.getRoomNumber()%> -
-                Rs. <%= room.getPricePerNight()%> per night
-            </option>
-            <%
-                }
-            %>
-        </select>
+    <!-- ROOM SELECTION -->
+    <label>Select Room</label>
+    <select name="roomId" id="roomSelect" required>
+        <% for (com.oceanview.model.Room room : availableRooms) { %>
+        <option value="<%= room.getId() %>"
+                data-price="<%= room.getPricePerNight() %>">
+            Room <%= room.getRoomNumber() %> -
+            Rs. <%= room.getPricePerNight() %> per night
+        </option>
+        <% } %>
+    </select>
 
-        <br><br>
+    <br><br>
 
-        <!-- GUEST COUNT -->
-        <label>Guest Count</label>
-        <input type="number" name="guestCount" min="1" required>
-
-        <hr>
-
-    </form>
-
-    <!-- =============================
-       EXISTING GUEST SEARCH
-    ============================== -->
-
-    <form method="get"
-          action="${pageContext.request.contextPath}/manageReservation">
-
-        <input type="hidden" name="checkIn" value="<%= checkIn%>">
-        <input type="hidden" name="checkOut" value="<%= checkOut%>">
-
-        <input type="text" name="searchValue"
-               placeholder="Search Existing Guest (Email / Contact)">
-        <button type="submit">Search Guest</button>
-
-    </form>
+    <!-- GUEST COUNT -->
+    <label>Guest Count</label>
+    <input type="number" name="guestCount" min="1" required>
 
     <hr>
 
-    <form method="post"
-          action="${pageContext.request.contextPath}/manageReservation">
+    <% if (foundGuest != null) { %>
 
-        <input type="hidden" name="checkIn" value="<%= checkIn%>">
-        <input type="hidden" name="checkOut" value="<%= checkOut%>">
-
-        <input type="hidden" name="roomId"
-               value="<%= availableRooms.get(0).getId()%>">
-
-        <!-- =============================
-           GUEST DETAILS
-        ============================== -->
-
-        <% if (foundGuest != null) {%>
+        <!-- EXISTING GUEST -->
+        <input type="hidden" name="guestType" value="existing">
+        <input type="hidden" name="guestId"
+               value="<%= foundGuest.getId() %>">
 
         <h4>Existing Guest Details</h4>
 
-        <input type="hidden" name="guestType" value="existing">
-        <input type="hidden" name="guestId"
-               value="<%= foundGuest.getId()%>">
-
         <label>Full Name</label>
         <input type="text"
-               value="<%= foundGuest.getFullName()%>" readonly>
+               value="<%= foundGuest.getFullName() %>" readonly>
 
         <label>Email</label>
         <input type="email"
-               value="<%= foundGuest.getEmail()%>" readonly>
+               value="<%= foundGuest.getEmail() %>" readonly>
 
         <label>Contact</label>
         <input type="text"
-               value="<%= foundGuest.getContact()%>" readonly>
+               value="<%= foundGuest.getContact() %>" readonly>
 
         <label>Address</label>
         <input type="text"
-               value="<%= foundGuest.getAddress()%>" readonly>
+               value="<%= foundGuest.getAddress() %>" readonly>
 
-        <% } else { %>
+    <% } else { %>
+
+        <!-- NEW GUEST -->
+        <input type="hidden" name="guestType" value="new">
 
         <h4>New Guest Details</h4>
-
-        <input type="hidden" name="guestType" value="new">
 
         <label>Username</label>
         <input type="text" name="username" required>
@@ -172,20 +157,20 @@
         <label>Address</label>
         <input type="text" name="address" required>
 
-        <% } %>
+    <% } %>
 
-        <hr>
+    <hr>
 
-        <!-- TOTAL AMOUNT -->
-        <label>Total Amount</label>
-        <input type="text" id="totalAmount"
-               name="totalAmount" readonly>
+    <!-- TOTAL AMOUNT -->
+    <label>Total Amount</label>
+    <input type="text" id="totalAmount"
+           name="totalAmount" readonly>
 
-        <br><br>
+    <br><br>
 
-        <button type="submit">Confirm Reservation</button>
+    <button type="submit">Confirm Reservation</button>
 
-    </form>
+</form>
 
 </div>
 
@@ -194,26 +179,8 @@
 
 
 <!-- =============================
-   ALL RESERVATIONS TABLE
+   RESERVATION LIST
 ============================== -->
-
-<div class="table-card">
-<div class="form-card">
-
-<form method="get"
-      action="${pageContext.request.contextPath}/manageReservation">
-
-    <input type="text" name="reservationNo"
-           placeholder="Search by Reservation No"
-           required>
-
-    <button type="submit">Search</button>
-
-</form>
-      <a href="${pageContext.request.contextPath}/manageReservation"
-   class="edit-btn">Clear</a>
-
-</div>
 
 <div class="table-card">
 
@@ -237,7 +204,6 @@ java.util.List<String[]> reservations =
     request.getAttribute("reservations");
 
 if (reservations != null && !reservations.isEmpty()) {
-
     for (String[] res : reservations) {
 %>
 
@@ -251,18 +217,26 @@ if (reservations != null && !reservations.isEmpty()) {
     <td><%= res[6] %></td>
 
     <td>
-        <% if (!"CONFIRMED".equals(res[6])) { %>
+        <% if ("PENDING".equals(res[6])) { %>
+
         <a class="edit-btn"
            href="${pageContext.request.contextPath}/manageReservation?action=confirm&reservationNo=<%= res[0] %>">
            Confirm
         </a>
-        <% } %>
 
         <a class="delete-btn"
-           onclick="return confirm('Are you sure?')"
            href="${pageContext.request.contextPath}/manageReservation?action=cancel&reservationNo=<%= res[0] %>">
            Cancel
         </a>
+
+        <% } else { %>
+
+        <a class="edit-btn"
+           href="${pageContext.request.contextPath}/manageReservation?action=details&reservationNo=<%= res[0] %>">
+           Detail
+        </a>
+
+        <% } %>
     </td>
 </tr>
 
@@ -276,43 +250,42 @@ if (reservations != null && !reservations.isEmpty()) {
 
 
 <!-- =============================
-   JS TOTAL AMOUNT CALCULATION
+   TOTAL AMOUNT CALCULATION JS
 ============================== -->
 
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", function () {
 
-        const roomSelect = document.getElementById("roomSelect");
-        const totalAmountInput = document.getElementById("totalAmount");
+    const roomSelect = document.getElementById("roomSelect");
+    const totalAmountInput = document.getElementById("totalAmount");
 
-        const checkIn = "<%= checkIn%>";
-        const checkOut = "<%= checkOut%>";
+    const checkIn = "<%= checkIn %>";
+    const checkOut = "<%= checkOut %>";
 
-        function calculateAmount() {
+    function calculateAmount() {
 
-            if (!roomSelect || !checkIn || !checkOut)
-                return;
+        if (!roomSelect || !checkIn || !checkOut) return;
 
-            const selectedOption =
-                    roomSelect.options[roomSelect.selectedIndex];
+        const selectedOption =
+            roomSelect.options[roomSelect.selectedIndex];
 
-            const price = parseFloat(
-                    selectedOption.getAttribute("data-price"));
+        const price =
+            parseFloat(selectedOption.getAttribute("data-price"));
 
-            const date1 = new Date(checkIn);
-            const date2 = new Date(checkOut);
+        const date1 = new Date(checkIn);
+        const date2 = new Date(checkOut);
 
-            const diffTime = date2 - date1;
-            const days = diffTime / (1000 * 60 * 60 * 24);
+        const diffTime = date2 - date1;
+        const days = diffTime / (1000 * 60 * 60 * 24);
 
-            const total = price * (days > 0 ? days : 1);
+        const total = price * (days > 0 ? days : 1);
 
-            totalAmountInput.value = total.toFixed(2);
-        }
+        totalAmountInput.value = total.toFixed(2);
+    }
 
-        if (roomSelect) {
-            roomSelect.addEventListener("change", calculateAmount);
-            calculateAmount();
-        }
-    });
+    if (roomSelect) {
+        roomSelect.addEventListener("change", calculateAmount);
+        calculateAmount();
+    }
+});
 </script>

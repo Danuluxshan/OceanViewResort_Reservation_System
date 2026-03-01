@@ -41,10 +41,6 @@ public class ReservationServlet extends HttpServlet {
             request.setAttribute("reservations",
                     reservationDAO.searchByReservationNumber(reservationNo.trim()));
 
-        } else {
-
-            request.setAttribute("reservations",
-                    reservationDAO.getAllReservations());
         }
 
         if ("cancel".equals(action) && reservationNo != null) {
@@ -71,6 +67,18 @@ public class ReservationServlet extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/manageReservation");
             return;
         }
+        if ("details".equals(action) && reservationNo != null) {
+
+            request.setAttribute("bookingDetails",
+                    reservationDAO.searchBookingDetails(reservationNo));
+
+            request.setAttribute("contentPage",
+                    "bookingDetails.jsp");
+
+            request.getRequestDispatcher("jsp/admin/layout.jsp")
+                    .forward(request, response);
+            return;
+        }
 
         // 🔹 Check available rooms
         if (checkIn != null && checkOut != null) {
@@ -87,6 +95,21 @@ public class ReservationServlet extends HttpServlet {
                     = userDAO.findGuestByEmailOrContact(searchValue.trim());
 
             request.setAttribute("foundGuest", foundGuest);
+        }
+        if ("manageBookings".equals(action)) {
+
+            ReservationDAO dao = new ReservationDAO();
+
+            request.setAttribute("bookings",
+                    dao.getAllBookings());
+
+            request.setAttribute("contentPage",
+                    "manageBookings.jsp");
+
+            request.getRequestDispatcher("jsp/admin/layout.jsp")
+                    .forward(request, response);
+
+            return;
         }
         // 🔹 Load all reservations
         request.setAttribute("reservations",
@@ -108,18 +131,105 @@ public class ReservationServlet extends HttpServlet {
         // Step 2: Final confirmation
         String finalConfirm = request.getParameter("finalConfirm");
         String reservationNo = request.getParameter("reservationNo");
+        String paymentAction = request.getParameter("paymentAction");
+
+        if ("pay".equals(paymentAction)) {
+
+            double paidAmount = Double.parseDouble(
+                    request.getParameter("paidAmount"));
+
+            ReservationDAO dao = new ReservationDAO();
+
+            // Get booking details
+            List<String[]> booking
+                    = dao.searchBookingDetails(reservationNo);
+
+            if (booking == null || booking.isEmpty()) {
+                response.getWriter().println("Booking not found!");
+                return;
+            }
+
+            double totalAmount
+                    = Double.parseDouble(booking.get(0)[5]);
+
+            // 🔴 CASE 1: Paid < Total
+            if (paidAmount < totalAmount) {
+
+                request.setAttribute("paymentError",
+                        "Payment amount cannot be less than Total Amount.");
+
+                request.setAttribute("bookingDetails", booking);
+                request.setAttribute("contentPage",
+                        "bookingDetails.jsp");
+
+                request.getRequestDispatcher("jsp/admin/layout.jsp")
+                        .forward(request, response);
+                return;
+            }
+
+            // 🟡 CASE 3: Paid > Total
+            if (paidAmount > totalAmount) {
+
+                double balance = paidAmount - totalAmount;
+
+                request.setAttribute("overPayment", true);
+                request.setAttribute("balanceAmount", balance);
+                request.setAttribute("enteredAmount", paidAmount);
+                request.setAttribute("bookingDetails", booking);
+
+                request.setAttribute("contentPage",
+                        "bookingDetails.jsp");
+
+                request.getRequestDispatcher("jsp/admin/layout.jsp")
+                        .forward(request, response);
+                return;
+            }
+
+            // 🟢 CASE 2: Paid = Total
+            dao.updatePayment(reservationNo, paidAmount);
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/manageReservation?action=details&reservationNo=" + reservationNo);
+
+            return;
+        }
+        String confirmOverPayment = request.getParameter("confirmOverPayment");
+
+        if ("yes".equals(confirmOverPayment)) {
+            double finalAmount
+                    = Double.parseDouble(request.getParameter("finalAmount"));
+
+            ReservationDAO dao = new ReservationDAO();
+            dao.updatePayment(reservationNo, finalAmount);
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/manageReservation?action=details&reservationNo=" + reservationNo);
+
+            return;
+        }
 
         if ("true".equals(finalConfirm) && reservationNo != null) {
 
             ReservationDAO reservationDAO = new ReservationDAO();
-            reservationDAO.confirmReservation(reservationNo);
+
+            // 1️⃣ Update reservation status
+            boolean updated
+                    = reservationDAO.confirmReservation(reservationNo);
+
+            // 2️⃣ Insert into bookings table
+            boolean inserted
+                    = reservationDAO.createBookingFromReservation(reservationNo);
+
+            System.out.println("Updated: " + updated);
+            System.out.println("Inserted: " + inserted);
 
             response.sendRedirect(
                     request.getContextPath() + "/manageReservation");
 
             return;
         }
-
         try {
 
             RoomDAO roomDAO = new RoomDAO();
