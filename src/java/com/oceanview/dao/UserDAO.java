@@ -49,32 +49,38 @@ public class UserDAO {
     }
 
     // 🔹 Login
-    public User login(String username, String encryptedPassword) {
+public User login(String username, String password) {
 
-        try {
-            String sql = "SELECT * FROM users WHERE username=? AND password=? AND status='ACTIVE'";
-            PreparedStatement ps = connection.prepareStatement(sql);
+    User user = null;
 
-            ps.setString(1, username);
-            ps.setString(2, encryptedPassword);
+    try {
+        String sql = "SELECT * FROM users WHERE username=? AND password=?";
+        PreparedStatement ps = connection.prepareStatement(sql);
+        ps.setString(1, username);
+        ps.setString(2, password);
 
-            ResultSet rs = ps.executeQuery();
+        ResultSet rs = ps.executeQuery();
 
-            if (rs.next()) {
-                User user = new User();
-                user.setId(rs.getInt("id"));
-                user.setUsername(rs.getString("username"));
-                user.setRole(rs.getString("role"));
-                return user;
-            }
+        if (rs.next()) {
 
-        } catch (Exception e) {
-            e.printStackTrace();
+            user = new User();
+
+            user.setId(rs.getInt("id"));
+            user.setUsername(rs.getString("username"));
+            user.setFullName(rs.getString("full_name"));  // 🔥 IMPORTANT
+            user.setEmail(rs.getString("email"));
+            user.setContact(rs.getString("contact"));
+            user.setAddress(rs.getString("address"));
+            user.setRole(rs.getString("role"));
         }
 
-        return null;
+    } catch (Exception e) {
+        e.printStackTrace();
     }
-    
+
+    return user;
+}
+
     public boolean isUsernameExists(String username) {
 
         try {
@@ -92,30 +98,73 @@ public class UserDAO {
 
         return false;
     }
+
     public User findGuestByEmailOrContact(String value) {
 
-    try {
-        String sql = "SELECT * FROM users WHERE role='GUEST' AND (email=? OR contact=?)";
-        PreparedStatement ps = connection.prepareStatement(sql);
-        ps.setString(1, value);
-        ps.setString(2, value);
+        try {
+            String sql = "SELECT * FROM users WHERE role='GUEST' AND (email=? OR contact=?)";
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, value);
+            ps.setString(2, value);
 
-        ResultSet rs = ps.executeQuery();
+            ResultSet rs = ps.executeQuery();
 
-        if (rs.next()) {
-            User user = new User();
-            user.setId(rs.getInt("id"));
-            user.setFullName(rs.getString("full_name"));
-            user.setEmail(rs.getString("email"));
-            user.setContact(rs.getString("contact"));
-            user.setAddress(rs.getString("address"));
-            return user;
+            if (rs.next()) {
+                User user = new User();
+                user.setId(rs.getInt("id"));
+                user.setFullName(rs.getString("full_name"));
+                user.setEmail(rs.getString("email"));
+                user.setContact(rs.getString("contact"));
+                user.setAddress(rs.getString("address"));
+                return user;
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
-    } catch(Exception e) {
-        e.printStackTrace();
+        return null;
     }
 
-    return null;
-}
+    public int getTotalUsers() {
+        try {
+            String sql = "SELECT COUNT(*) FROM users";
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public int getTotalGuests() {
+        try {
+            String sql = "SELECT COUNT(*) FROM users WHERE role='GUEST'";
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public int getTotalReceptionists() {
+        try {
+            String sql = "SELECT COUNT(*) FROM users WHERE role='RECEPTIONIST'";
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
 }
