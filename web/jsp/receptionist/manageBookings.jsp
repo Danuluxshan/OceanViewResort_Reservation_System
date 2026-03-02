@@ -99,9 +99,9 @@
 
                 <!-- Cancel Booking Button -->
                 <a class="delete-btn"
-                   onclick="return confirm('Are you sure you want to cancel this booking?')"
+                   onclick="return confirm('Are you sure to cancel this booking?')"
                    href="${pageContext.request.contextPath}/manageReservation?action=cancelBooking&bookingId=<%= b[0]%>">
-                    Cancel
+                    Cancel Booking
                 </a>
 
                 <% } %>

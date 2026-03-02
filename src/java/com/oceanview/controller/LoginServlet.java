@@ -61,21 +61,36 @@ public class LoginServlet extends HttpServlet {
             return;
         }
 
+        // 🔐 SESSION SETUP
         HttpSession session = request.getSession();
-        session.setAttribute("loggedUser", user);
+
+        session.setAttribute("userId", user.getId());
+        session.setAttribute("fullName", user.getFullName());
+        session.setAttribute("username", user.getUsername());
+        session.setAttribute("email", user.getEmail());
+        session.setAttribute("contact", user.getContact());
+        session.setAttribute("address", user.getAddress());
+        session.setAttribute("user", user);
         session.setAttribute("role", user.getRole());
 
-        // Role-based redirect
-        switch (user.getRole()) {
-            case "ADMIN":
-                response.sendRedirect("jsp/admin/layout.jsp");
-                break;
-            case "RECEPTIONIST":
-                response.sendRedirect("jsp/receptionistDashboard.jsp");
-                break;
-            case "GUEST":
-                response.sendRedirect("jsp/guestDashboard.jsp");
-                break;
+        // ✅ Proper Role Based Redirect (TO SERVLETS)
+        if ("ADMIN".equals(user.getRole())) {
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/manageReservation?action=dashboard");
+
+        } else if ("RECEPTIONIST".equals(user.getRole())) {
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/receptionist?action=dashboard");
+
+        } else if ("GUEST".equals(user.getRole())) {
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/guest?action=dashboard");
         }
     }
 }

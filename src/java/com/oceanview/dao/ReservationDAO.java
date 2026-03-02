@@ -163,27 +163,43 @@ public class ReservationDAO {
 
         try {
 
+            // 🔹 Generate booking ID
+            String bookingId
+                    = com.oceanview.util.BookingIdGenerator
+                            .generateBookingId(connection);
+
             String sql = """
             INSERT INTO bookings(
+                booking_id,
                 reservation_number,
                 guest_id,
                 room_id,
                 check_in,
                 check_out,
-                total_amount
+                total_amount,
+                booking_status,
+                payment_status,
+                paid_amount
             )
-            SELECT reservation_number,
+            SELECT ?,
+                   reservation_number,
                    guest_id,
                    room_id,
                    check_in,
                    check_out,
-                   total_amount
+                   total_amount,
+                   'CONFIRMED',
+                   'PENDING',
+                   NULL
             FROM reservations
             WHERE reservation_number = ?
         """;
 
-            PreparedStatement ps = connection.prepareStatement(sql);
-            ps.setString(1, reservationNo);
+            PreparedStatement ps
+                    = connection.prepareStatement(sql);
+
+            ps.setString(1, bookingId);
+            ps.setString(2, reservationNo);
 
             return ps.executeUpdate() > 0;
 
@@ -265,7 +281,7 @@ public class ReservationDAO {
 
         try {
 
-            // 1️⃣ Get total amount first
+            // 1️⃣ Get total amount
             String getSql = "SELECT total_amount FROM bookings WHERE reservation_number=?";
             PreparedStatement ps1 = connection.prepareStatement(getSql);
             ps1.setString(1, reservationNo);
@@ -278,27 +294,40 @@ public class ReservationDAO {
             double totalAmount = rs.getDouble("total_amount");
 
             String paymentStatus;
+            String bookingStatus;
 
+            // 2️⃣ Decide payment + booking status
             if (paidAmount >= totalAmount) {
+
                 paymentStatus = "PAID";
+                bookingStatus = "COMPLETED";   // 🔥 IMPORTANT
+
             } else if (paidAmount > 0) {
+
                 paymentStatus = "PARTIAL";
+                bookingStatus = "CONFIRMED";
+
             } else {
+
                 paymentStatus = "PENDING";
+                bookingStatus = "CONFIRMED";
             }
 
-            // 2️⃣ Update booking
+            // 3️⃣ Update bookings table
             String updateSql = """
             UPDATE bookings
             SET paid_amount=?,
-                payment_status=?
+                payment_status=?,
+                booking_status=?
             WHERE reservation_number=?
         """;
 
             PreparedStatement ps2 = connection.prepareStatement(updateSql);
+
             ps2.setDouble(1, paidAmount);
             ps2.setString(2, paymentStatus);
-            ps2.setString(3, reservationNo);
+            ps2.setString(3, bookingStatus);
+            ps2.setString(4, reservationNo);
 
             return ps2.executeUpdate() > 0;
 
@@ -316,12 +345,14 @@ public class ReservationDAO {
         try {
 
             String sql = """
-            SELECT b.reservation_number,
+            SELECT b.booking_id,
+                   b.reservation_number,
                    u.full_name,
                    rm.room_number,
                    b.total_amount,
                    b.paid_amount,
-                   b.payment_status
+                   b.payment_status,
+                   b.booking_status
             FROM bookings b
             JOIN users u ON b.guest_id = u.id
             JOIN rooms rm ON b.room_id = rm.id
@@ -333,14 +364,16 @@ public class ReservationDAO {
 
             while (rs.next()) {
 
-                String[] row = new String[6];
+                String[] row = new String[8];
 
-                row[0] = rs.getString("reservation_number");
-                row[1] = rs.getString("full_name");
-                row[2] = rs.getString("room_number");
-                row[3] = rs.getString("total_amount");
-                row[4] = rs.getString("paid_amount");
-                row[5] = rs.getString("payment_status");
+                row[0] = rs.getString("booking_id");
+                row[1] = rs.getString("reservation_number");
+                row[2] = rs.getString("full_name");
+                row[3] = rs.getString("room_number");
+                row[4] = rs.getString("total_amount");
+                row[5] = rs.getString("paid_amount");
+                row[6] = rs.getString("payment_status");
+                row[7] = rs.getString("booking_status");
 
                 list.add(row);
             }
@@ -351,5 +384,359 @@ public class ReservationDAO {
 
         return list;
     }
+
+    public boolean cancelBooking(String bookingId) {
+
+        try {
+
+            String sql = """
+            UPDATE bookings
+            SET booking_status = 'CANCELLED'
+            WHERE booking_id = ?
+            AND booking_status != 'COMPLETED'
+        """;
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, bookingId);
+
+            int rows = ps.executeUpdate();
+
+            return rows > 0;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    public List<String[]> searchBookingById(String bookingId) {
+
+        List<String[]> list = new ArrayList<>();
+
+        try {
+
+            String sql = """
+            SELECT b.booking_id,
+                   b.reservation_number,
+                   u.full_name,
+                   rm.room_number,
+                   b.total_amount,
+                   b.paid_amount,
+                   b.payment_status,
+                   b.booking_status
+            FROM bookings b
+            JOIN users u ON b.guest_id = u.id
+            JOIN rooms rm ON b.room_id = rm.id
+            WHERE b.booking_id = ?
+        """;
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, bookingId);
+
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+
+                String[] row = new String[8];
+
+                row[0] = rs.getString("booking_id");
+                row[1] = rs.getString("reservation_number");
+                row[2] = rs.getString("full_name");
+                row[3] = rs.getString("room_number");
+                row[4] = rs.getString("total_amount");
+                row[5] = rs.getString("paid_amount");
+                row[6] = rs.getString("payment_status");
+                row[7] = rs.getString("booking_status");
+
+                list.add(row);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    public List<String[]> filterBookingsByStatus(String status) {
+
+        List<String[]> list = new ArrayList<>();
+
+        try {
+
+            String sql = """
+            SELECT b.booking_id,
+                   b.reservation_number,
+                   u.full_name,
+                   rm.room_number,
+                   b.total_amount,
+                   b.paid_amount,
+                   b.payment_status,
+                   b.booking_status
+            FROM bookings b
+            JOIN users u ON b.guest_id = u.id
+            JOIN rooms rm ON b.room_id = rm.id
+            WHERE b.booking_status = ?
+        """;
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, status);
+
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+
+                String[] row = new String[8];
+
+                row[0] = rs.getString("booking_id");
+                row[1] = rs.getString("reservation_number");
+                row[2] = rs.getString("full_name");
+                row[3] = rs.getString("room_number");
+                row[4] = rs.getString("total_amount");
+                row[5] = rs.getString("paid_amount");
+                row[6] = rs.getString("payment_status");
+                row[7] = rs.getString("booking_status");
+
+                list.add(row);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+    // 🔵 Total Reservations
+
+    public int getTotalReservations() {
+
+        try {
+            String sql = "SELECT COUNT(*) FROM reservations";
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+// 🔵 Total Bookings
+    public int getTotalBookings() {
+
+        try {
+            String sql = "SELECT COUNT(*) FROM bookings";
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+// 🔵 Completed Bookings
+    public int getCompletedBookings() {
+
+        try {
+            String sql = "SELECT COUNT(*) FROM bookings WHERE booking_status='COMPLETED'";
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+// 🔵 Cancelled Bookings
+    public int getCancelledBookings() {
+
+        try {
+            String sql = "SELECT COUNT(*) FROM bookings WHERE booking_status='CANCELLED'";
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+// 🔵 Total Revenue
+    public double getTotalRevenue() {
+
+        try {
+            String sql = "SELECT SUM(paid_amount) FROM bookings WHERE payment_status='PAID'";
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getDouble(1);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+// 🔵 Pending Payments
+    public int getPendingPayments() {
+
+        try {
+            String sql = "SELECT COUNT(*) FROM bookings WHERE payment_status='PENDING'";
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+    public List<String[]> getMonthlyRevenue() {
+
+        List<String[]> list = new ArrayList<>();
+
+        try {
+
+            String sql = """
+            SELECT DATE_FORMAT(check_in, '%Y-%m') AS month,
+                   SUM(paid_amount) AS revenue
+            FROM bookings
+            WHERE payment_status='PAID'
+            GROUP BY month
+            ORDER BY month
+        """;
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+
+                String[] row = new String[2];
+                row[0] = rs.getString("month");
+                row[1] = rs.getString("revenue");
+
+                list.add(row);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    public List<String[]> getRoomOccupancyReport() {
+
+        List<String[]> list = new ArrayList<>();
+
+        try {
+
+            String sql = """
+            SELECT rm.room_number,
+                   COUNT(b.id) AS total_bookings
+            FROM bookings b
+            JOIN rooms rm ON b.room_id = rm.id
+            WHERE b.booking_status='COMPLETED'
+            GROUP BY rm.room_number
+        """;
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+
+                String[] row = new String[2];
+                row[0] = rs.getString("room_number");
+                row[1] = rs.getString("total_bookings");
+
+                list.add(row);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    public int getActiveReservations() {
+        try {
+            String sql = "SELECT COUNT(*) FROM reservations WHERE status='PENDING'";
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+    public int getTodayReservationsCount() {
+    try {
+        String sql = "SELECT COUNT(*) FROM reservations WHERE check_in = CURDATE()";
+        PreparedStatement ps = connection.prepareStatement(sql);
+        ResultSet rs = ps.executeQuery();
+        if (rs.next()) return rs.getInt(1);
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+    return 0;
+}
+
+public int getTodayCheckinCount() {
+    try {
+        String sql = "SELECT COUNT(*) FROM bookings WHERE check_in = CURDATE() AND booking_status='CONFIRMED'";
+        PreparedStatement ps = connection.prepareStatement(sql);
+        ResultSet rs = ps.executeQuery();
+        if (rs.next()) return rs.getInt(1);
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+    return 0;
+}
+
+public int getPendingPaymentsCount() {
+    try {
+        String sql = "SELECT COUNT(*) FROM bookings WHERE payment_status='PENDING'";
+        PreparedStatement ps = connection.prepareStatement(sql);
+        ResultSet rs = ps.executeQuery();
+        if (rs.next()) return rs.getInt(1);
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+    return 0;
+}
 
 }
