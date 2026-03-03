@@ -45,9 +45,12 @@ List<Room> rooms =
     <div class="room-card">
 
         <h3>Room <%= room.getRoomNumber() %></h3>
-        <p>Capacity: <%= room.getCapacity() %></p>
+        <p>Capacity: <%= room.getCapacity() %> </p>
         <p class="price">
             Rs. <%= room.getPricePerNight() %> / Night
+        </p>
+        <p >
+            Description: <%= room.getDescription()%>
         </p>
 
         <form method="post"
