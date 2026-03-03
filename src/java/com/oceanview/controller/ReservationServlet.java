@@ -199,6 +199,14 @@ public class ReservationServlet extends HttpServlet {
             request.setAttribute("foundGuest", foundGuest);
         }
 
+        if ("help".equals(action)) {
+
+            request.setAttribute("contentPage", "help.jsp");
+
+            forwardByRole(request, response, role);
+            return;
+        }
+
         request.setAttribute("reservations",
                 reservationDAO.getAllReservations());
 
@@ -224,148 +232,77 @@ public class ReservationServlet extends HttpServlet {
         String confirmOverPayment = request.getParameter("confirmOverPayment");
         if ("pay".equals(paymentAction)) {
 
-    double paidAmount = Double.parseDouble(
-            request.getParameter("paidAmount"));
+            double paidAmount = Double.parseDouble(
+                    request.getParameter("paidAmount"));
 
-    List<String[]> booking
-            = reservationDAO.searchBookingDetails(reservationNo);
+            List<String[]> booking
+                    = reservationDAO.searchBookingDetails(reservationNo);
 
-    if (booking == null || booking.isEmpty()) {
-        response.getWriter().println("Booking not found!");
-        return;
-    }
+            if (booking == null || booking.isEmpty()) {
+                response.getWriter().println("Booking not found!");
+                return;
+            }
 
-    double totalAmount
-            = Double.parseDouble(booking.get(0)[5]);
+            double totalAmount
+                    = Double.parseDouble(booking.get(0)[5]);
 
-    HttpSession session = request.getSession(false);
-    String role = (String) session.getAttribute("role");
+            HttpSession session = request.getSession(false);
+            String role = (String) session.getAttribute("role");
 
-    // 🔴 LESS THAN TOTAL
-    if (paidAmount < totalAmount) {
+            // 🔴 LESS THAN TOTAL
+            if (paidAmount < totalAmount) {
 
-        request.setAttribute("paymentError",
-                "Payment amount cannot be less than Total Amount.");
+                request.setAttribute("paymentError",
+                        "Payment amount cannot be less than Total Amount.");
 
-        request.setAttribute("bookingDetails", booking);
-        request.setAttribute("contentPage",
-                "/jsp/admin/bookingDetails.jsp");
+                request.setAttribute("bookingDetails", booking);
+                request.setAttribute("contentPage",
+                        "/jsp/admin/bookingDetails.jsp");
 
-        forwardByRole(request, response, role);
-        return;
-    }
+                forwardByRole(request, response, role);
+                return;
+            }
 
-    // 🟡 OVERPAYMENT
-    if (paidAmount > totalAmount) {
+            // 🟡 OVERPAYMENT
+            if (paidAmount > totalAmount) {
 
-        double balance = paidAmount - totalAmount;
+                double balance = paidAmount - totalAmount;
 
-        request.setAttribute("overPayment", true);
-        request.setAttribute("balanceAmount", balance);
-        request.setAttribute("enteredAmount", paidAmount);
-        request.setAttribute("bookingDetails", booking);
-        request.setAttribute("contentPage",
-                "/jsp/admin/bookingDetails.jsp");
+                request.setAttribute("overPayment", true);
+                request.setAttribute("balanceAmount", balance);
+                request.setAttribute("enteredAmount", paidAmount);
+                request.setAttribute("bookingDetails", booking);
+                request.setAttribute("contentPage",
+                        "/jsp/admin/bookingDetails.jsp");
 
-        forwardByRole(request, response, role);
-        return;
-    }
+                forwardByRole(request, response, role);
+                return;
+            }
 
-    // 🟢 EXACT PAYMENT
-    reservationDAO.updatePayment(reservationNo, paidAmount);
+            // 🟢 EXACT PAYMENT
+            reservationDAO.updatePayment(reservationNo, paidAmount);
 
-    response.sendRedirect(
-            request.getContextPath()
-            + "/manageReservation?action=details&reservationNo="
-            + reservationNo);
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/manageReservation?action=details&reservationNo="
+                    + reservationNo);
 
-    return;
-}
+            return;
+        }
+        if ("yes".equals(confirmOverPayment)) {
 
-//        if ("pay".equals(paymentAction)) {
-//
-//            double paidAmount = Double.parseDouble(
-//                    request.getParameter("paidAmount"));
-//
-//            ReservationDAO dao = new ReservationDAO();
-//
-//            // Get booking details
-//            List<String[]> booking
-//                    = dao.searchBookingDetails(reservationNo);
-//
-//            if (booking == null || booking.isEmpty()) {
-//                response.getWriter().println("Booking not found!");
-//                return;
-//            }
-//
-//            double totalAmount
-//                    = Double.parseDouble(booking.get(0)[5]);
-//
-//            // 🔴 CASE 1: Paid < Total
-//            if (paidAmount < totalAmount) {
-//
-//                request.setAttribute("paymentError",
-//                        "Payment amount cannot be less than Total Amount.");
-//
-//                request.setAttribute("bookingDetails", booking);
-//                request.setAttribute("contentPage",
-//                        "bookingDetails.jsp");
-//
-//                HttpSession session = request.getSession(false);
-//                String role = (String) session.getAttribute("role");
-//
-//                request.setAttribute("contentPage", "/jsp/admin/bookingDetails.jsp");
-//
-//                forwardByRole(request, response, role);
-//                return;
-//            }
-//
-//            // 🟡 CASE 3: Paid > Total
-//            if (paidAmount > totalAmount) {
-//
-//                double balance = paidAmount - totalAmount;
-//
-//                request.setAttribute("overPayment", true);
-//                request.setAttribute("balanceAmount", balance);
-//                request.setAttribute("enteredAmount", paidAmount);
-//                request.setAttribute("bookingDetails", booking);
-//
-//                request.setAttribute("contentPage",
-//                        "bookingDetails.jsp");
-//
-//                HttpSession session = request.getSession(false);
-//                String role = (String) session.getAttribute("role");
-//
-//                request.setAttribute("contentPage", "/jsp/admin/bookingDetails.jsp");
-//
-//                forwardByRole(request, response, role);
-//                return;
-//            }
-//
-//            // 🟢 CASE 2: Paid = Total
-//            dao.updatePayment(reservationNo, paidAmount);
-//
-//            response.sendRedirect(
-//                    request.getContextPath()
-//                    + "/manageReservation?action=details&reservationNo=" + reservationNo);
-//
-//            return;
-//        }
+            double finalAmount
+                    = Double.parseDouble(request.getParameter("finalAmount"));
 
-if ("yes".equals(confirmOverPayment)) {
+            reservationDAO.updatePayment(reservationNo, finalAmount);
 
-    double finalAmount =
-            Double.parseDouble(request.getParameter("finalAmount"));
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/manageReservation?action=details&reservationNo="
+                    + reservationNo);
 
-    reservationDAO.updatePayment(reservationNo, finalAmount);
-
-    response.sendRedirect(
-            request.getContextPath()
-            + "/manageReservation?action=details&reservationNo="
-            + reservationNo);
-
-    return;
-}
+            return;
+        }
 
         // ============================
         // FINAL CONFIRM

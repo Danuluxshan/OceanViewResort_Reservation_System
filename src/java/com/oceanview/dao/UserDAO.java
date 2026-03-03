@@ -49,40 +49,39 @@ public class UserDAO {
     }
 
     // 🔹 Login
-public User login(String username, String password) {
+    public User login(String username, String password) {
 
-    User user = null;
+        User user = null;
 
-    try {
-        String sql = "SELECT * FROM users WHERE username=? AND password=?";
-        PreparedStatement ps = connection.prepareStatement(sql);
-        ps.setString(1, username);
-        ps.setString(2, password);
+        try {
+            String sql = "SELECT * FROM users WHERE username=? AND password=?";
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, username);
+            ps.setString(2, password);
 
-        ResultSet rs = ps.executeQuery();
+            ResultSet rs = ps.executeQuery();
 
-        if (rs.next()) {
+            if (rs.next()) {
 
-            user = new User();
+                user = new User();
 
-            user.setId(rs.getInt("id"));
-            user.setUsername(rs.getString("username"));
-            user.setFullName(rs.getString("full_name"));  // 🔥 IMPORTANT
-            user.setEmail(rs.getString("email"));
-            user.setContact(rs.getString("contact"));
-            user.setAddress(rs.getString("address"));
-            user.setRole(rs.getString("role"));
+                user.setId(rs.getInt("id"));
+                user.setUsername(rs.getString("username"));
+                user.setFullName(rs.getString("full_name"));  // 🔥 IMPORTANT
+                user.setEmail(rs.getString("email"));
+                user.setContact(rs.getString("contact"));
+                user.setAddress(rs.getString("address"));
+                user.setRole(rs.getString("role"));
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
-    } catch (Exception e) {
-        e.printStackTrace();
+        return user;
     }
 
-    return user;
-}
-
     public boolean isUsernameExists(String username) {
-
         try {
             String sql = "SELECT id FROM users WHERE username=?";
             PreparedStatement ps = connection.prepareStatement(sql);
@@ -95,7 +94,6 @@ public User login(String username, String password) {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         return false;
     }
 
@@ -166,5 +164,103 @@ public User login(String username, String password) {
             e.printStackTrace();
         }
         return 0;
+    }
+
+    public boolean updateGuestProfile(User user) {
+
+        try {
+
+            String sql = """
+            UPDATE users
+            SET full_name=?,
+                email=?,
+                contact=?,
+                address=?
+            WHERE id=?
+        """;
+
+            PreparedStatement ps
+                    = connection.prepareStatement(sql);
+
+            ps.setString(1, user.getFullName());
+            ps.setString(2, user.getEmail());
+            ps.setString(3, user.getContact());
+            ps.setString(4, user.getAddress());
+            ps.setInt(5, user.getId());
+
+            return ps.executeUpdate() > 0;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    public boolean updatePassword(int userId, String newPassword) {
+
+        try {
+
+            String sql
+                    = "UPDATE users SET password=? WHERE id=?";
+
+            PreparedStatement ps
+                    = connection.prepareStatement(sql);
+
+            ps.setString(1, newPassword);
+            ps.setInt(2, userId);
+
+            return ps.executeUpdate() > 0;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    public boolean deactivateAccount(int userId) {
+
+        try {
+
+            String sql
+                    = "UPDATE users SET status='INACTIVE' WHERE id=?";
+
+            PreparedStatement ps
+                    = connection.prepareStatement(sql);
+
+            ps.setInt(1, userId);
+
+            return ps.executeUpdate() > 0;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    public String getPasswordByUserId(int userId) {
+
+        try {
+
+            String sql = "SELECT password FROM users WHERE id=?";
+
+            PreparedStatement ps
+                    = connection.prepareStatement(sql);
+
+            ps.setInt(1, userId);
+
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getString("password");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 }

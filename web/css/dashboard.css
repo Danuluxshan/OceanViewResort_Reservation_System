@@ -77,3 +77,20 @@ body {
     font-size: 22px;
     font-weight: bold;
 }
+.help-card {
+    background: #fff;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    max-width: 700px;
+}
+
+.help-card h3 {
+    margin-top: 20px;
+    color: #1e3c72;
+}
+
+.help-card ul,
+.help-card ol {
+    margin-left: 20px;
+}

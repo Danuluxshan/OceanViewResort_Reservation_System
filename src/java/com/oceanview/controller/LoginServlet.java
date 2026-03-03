@@ -87,10 +87,8 @@ public class LoginServlet extends HttpServlet {
                     + "/receptionist?action=dashboard");
 
         } else if ("GUEST".equals(user.getRole())) {
+            response.sendRedirect(request.getContextPath() + "/guest?action=dashboard");
 
-            response.sendRedirect(
-                    request.getContextPath()
-                    + "/guest?action=dashboard");
         }
     }
 }
