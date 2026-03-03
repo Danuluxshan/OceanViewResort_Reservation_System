@@ -1,14 +1,17 @@
 package com.oceanview.controller;
 
+import com.oceanview.dao.GuestDAO;
 import com.oceanview.dao.ReservationDAO;
 import com.oceanview.dao.UserDAO;
 import com.oceanview.model.User;
+import com.oceanview.pattern.behavioral.ReceptionistIterator;
 import com.oceanview.util.PasswordUtil;
 
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import jakarta.servlet.annotation.*;
 import java.io.IOException;
+import java.util.List;
 
 @WebServlet("/guest")
 public class GuestServlet extends HttpServlet {

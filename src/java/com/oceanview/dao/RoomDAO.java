@@ -123,36 +123,45 @@ public class RoomDAO {
 
         return false;
     }
+
     public List<Room> getAvailableRooms(String checkIn, String checkOut) {
 
     List<Room> list = new ArrayList<>();
 
     try {
+
         String sql = """
         SELECT * FROM rooms r
         WHERE r.id NOT IN (
             SELECT room_id FROM reservations
-            WHERE (? BETWEEN check_in AND check_out)
-            OR (? BETWEEN check_in AND check_out)
+            WHERE status != 'CANCELLED'
+            AND (
+                (? < check_out AND ? > check_in)
+            )
         )
         """;
 
         PreparedStatement ps = connection.prepareStatement(sql);
+
         ps.setString(1, checkIn);
         ps.setString(2, checkOut);
 
         ResultSet rs = ps.executeQuery();
 
-        while(rs.next()) {
+        while (rs.next()) {
             Room room = new Room();
             room.setId(rs.getInt("id"));
             room.setRoomNumber(rs.getString("room_number"));
             room.setRoomType(rs.getString("room_type"));
+            room.setCapacity(rs.getInt("capacity"));
             room.setPricePerNight(rs.getDouble("price_per_night"));
+            room.setDescription(rs.getString("description"));
             list.add(room);
         }
 
-    } catch(Exception e) { e.printStackTrace(); }
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
 
     return list;
 }
