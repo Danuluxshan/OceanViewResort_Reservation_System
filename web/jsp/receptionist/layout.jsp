@@ -54,6 +54,7 @@
             <li><a href="${pageContext.request.contextPath}/manageReservation?action=manageBookings">Manage Bookings</a></li>
             <li><a href="${pageContext.request.contextPath}/manageReservation?action=reports">Reports</a></li>
             <li><a href="${pageContext.request.contextPath}/receptionist?action=profile">Profile</a></li>
+            <li><a href="${pageContext.request.contextPath}/manageReservation?action=help">Help</a></li>
         </ul>
 
         <div class="logout">
